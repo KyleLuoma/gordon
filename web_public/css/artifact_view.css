@@ -1,0 +1,13 @@
+
+.artifact_window {
+    height: 100%;
+    width: 50%;
+    position: fixed;
+    top: 0;
+    right: 0;
+    border-radius: 5px;
+    box-shadow: 5px;
+    border-color: black;
+    background-color: rgb(140, 140, 142);
+    transition: 0.5s;
+}
