@@ -1,0 +1,360 @@
+Model: gemini-2.0-flash
+
+Prompt: You are an AI assistant tasked with extracting structured data from unstructured recipe text. Your goal is to read through a recipe text file and create a JSON list of ingredient items. Each ingredient item in the JSON list should have the following fields:
+
+1. `name`: The name of the ingredient (e.g., "sugar", "flour", "olive oil"). This name must be limited to the base item and not include unneeded adjectives (e.g., use black pepper instead of freshly ground black pepper). This is so that we can limit redundant entries in our recipe database.
+2. `unit`: The unit of measurement (e.g., "cups", "tablespoons", "grams"). If no unit is specified, use `null`.
+3. `amount`: The quantity of the ingredient (e.g., "1", "2.5", "a pinch"). If no amount is specified, use `null`.
+
+The input recipe text may contain additional information such as instructions or notes, but you should focus only on extracting the ingredients. Ensure the JSON output is well-structured and valid.
+
+If one of the ingredients aligns with one of the ingredients that already exists in our database, then use the same name as the existing entry. If the ingredient is not in our database, then we will add it as a new entry using the list that you provide. Here is a list of existing ingredients in our database:
+
+- white sugar
+- white flour
+- olive oil
+- salt
+- black pepper
+- garlic clove
+- unsalted butter
+- chicken broth
+- garlic clove
+- dried chile
+- ginger
+- shrimp
+- shallots
+- bell pepper
+- salt
+- black pepper
+- cilantro
+- corn oil
+- buns
+- lime wedges
+- ketchup
+
+
+Here are the units of measurement that already exist in our database:
+- cups
+- tablespoons
+- teaspoons
+- garlic clove
+- dried chile
+- ginger
+- shrimp
+- shallots
+- bell pepper
+- salt
+- black pepper
+- cilantro
+- corn oil
+- buns
+- lime wedges
+- ketchup
+
+
+Example Input:
+
+Chicken Fajita Skillet Casserole
+4.7
+(6)
+6 Reviews
+1 Photo
+This chicken fajita skillet casserole is a one-dish dinner made in a skillet using convenient rotisserie chicken.
+
+By Nicole McLaughlin  Published on August 26, 2024
+
+Save
+
+Rate
+Print
+
+Share
+How to Make a Deviled Potato Flight
+
+Close
+overhead view of plated fajita casserole with skillet on the side
+Add Photo
+Prep Time:
+20 mins
+Cook Time:
+25 mins
+Total Time:
+45 mins
+Servings:
+6
+Jump to Nutrition Facts
+
+Cook Mode (Keep screen awake)
+Ingredients
+
+1x
+
+2x
+
+4x
+Original recipe (1X) yields 6 servings
+
+1 tablespoon olive oil
+
+2 poblano peppers, thinly sliced
+
+1 yellow or orange bell pepper, thinly sliced
+
+1 white onion, thinly sliced
+
+1 1/2 teaspoons chili powder
+
+1/2 teaspoon ground cumin
+
+1/4 teaspoon garlic powder
+
+3/4 teaspoon kosher salt
+
+1/2 teaspoon freshly ground black pepper
+
+2 1/2 tablespoons butter
+
+2 tablespoons all-purpose flour
+
+1 (10 ounce) can diced tomatoes and green chiles
+
+1 1/4 cups chicken broth
+
+2 1/2 cups shredded rotisserie chicken
+
+1 (15 ounce) can pinto beans, drained and rinsed
+
+2 cups sharp Cheddar cheese, divided
+
+3 cups broken tortilla chips
+
+toppings, such as lettuce, cilantro, sour cream, salsa, and hot sauce (optional)
+
+Local Offers
+newburgh, NY 12550 
+Change
+
+Instacart logo
+Walmart logo
+Target logo
+Instacart logo
+Walmart logo
+
+
+Buy all 18 ingredients from this recipe for $45.68
+
+Add to
+Walmart retailer logo
+cart
+Directions
+Preheat the oven to 375 degrees F (190 degrees C).
+
+Heat oil in a large, oven proof skillet over medium-high heat. Add peppers and onions and cook, undisturbed, 5 minutes or until browned. Add chili powder, cumin, garlic powder, salt and pepper and continue cooking until vegetables are soft, stirring often, 1 to 2  minutes. Remove vegetables from the pan and set aside.
+
+Add butter to the pan and melt over moderate heat. Whisk in flour and cook for 1 minute, stirring constantly. Add in tomatoes and broth and cook until thick and creamy, stirring constantly, about 3 minutes. Stir in chicken and beans. Top chicken mixture with 1 cup cheese. Spread reserved peppers and onions evenly over the cheese and top with chips and remaining cheese.
+
+Bake in the preheated oven until bubbly and lightly browned on top, about 15  minutes. Serve with desired toppings.
+
+Example output:
+
+```json
+[
+    {
+        "name": "olive oil",
+        "unit": "tablespoon",
+        "amount": "1"
+    },
+    {
+        "name": "poblano peppers",
+        "unit": null,
+        "amount": "2"
+    },
+    {
+        "name": "bell pepper",
+        "unit": null,
+        "amount": "1"
+    },
+    {
+        "name": "white onion",
+        "unit": null,
+        "amount": "1"
+    },
+    {
+        "name": "chili powder",
+        "unit": "teaspoons",
+        "amount": "1.5"
+    },
+    {
+        "name": "ground cumin",
+        "unit": "teaspoon",
+        "amount": "0.5"
+    },
+    {
+        "name": "garlic powder",
+        "unit": "teaspoon",
+        "amount": "0.25"
+    },
+    {
+        "name": "salt",
+        "unit": "teaspoon",
+        "amount": "0.75"
+    },
+    {
+        "name": "black pepper",
+        "unit": "teaspoon",
+        "amount": "0.5"
+    },
+    {
+        "name": "unsalted butter",
+        "unit": "tablespoons",
+        "amount": "2.5"
+    },
+    {
+        "name": "white flour",
+        "unit": "tablespoons",
+        "amount": "2"
+    },
+    {
+        "name": "diced tomatoes and green chiles",
+        "unit": "ounce",
+        "amount": "10"
+    },
+    {
+        "name": "chicken broth",
+        "unit": "cups",
+        "amount": "1.25"
+    },
+    {
+        "name": "shredded rotisserie chicken",
+        "unit": "cups",
+        "amount": "2.5"
+    },
+    {
+        "name": "pinto beans",
+        "unit": "ounce",
+        "amount": "15"
+    },
+    {
+        "name": "sharp Cheddar cheese",
+        "unit": "cups",
+        "amount": "2"
+    },
+    {
+        "name": "tortilla chips",
+        "unit": "cups",
+        "amount": "3"
+    }
+]
+```
+
+Note: The output above is just an example and may not be the exact output for the given input.
+
+Here is the recipe:
+Gombaleves (Creamy Mushroom Soup)
+4 appetizer servings (about 4 1/2 cups)
+-
+4 tablespoons unsalted butter
+1 pound white button or cremini mushrooms, thinly sliced (about 6 cups)
+1 cup finely chopped yellow or white onion
+Salt and pepper
+3 garlic cloves, minced
+1 tablespoon Hungarian paprika
+2 teaspoons dried dill
+½ teaspoon dried thyme
+3 cups low-sodium chicken, mushroom or vegetable broth
+1 teaspoon Worcestershire sauce
+3 tablespoons all-purpose flour
+1 cup whole milk
+¼ cup sour cream, plus more for serving (optional)
+1 tablespoon lemon juice 
+¼ cup chopped parsley
+Crusty bread, for serving
+
+Now, please read the provided recipe text and generate the JSON list of ingredients as described above.
+
+Response: ```json
+[
+    {
+        "name": "unsalted butter",
+        "unit": "tablespoons",
+        "amount": "4"
+    },
+    {
+        "name": "white button or cremini mushrooms",
+        "unit": "pound",
+        "amount": "1"
+    },
+    {
+        "name": "white onion",
+        "unit": "cup",
+        "amount": "1"
+    },
+    {
+        "name": "salt",
+        "unit": null,
+        "amount": null
+    },
+    {
+        "name": "black pepper",
+        "unit": null,
+        "amount": null
+    },
+    {
+        "name": "garlic clove",
+        "unit": "garlic cloves",
+        "amount": "3"
+    },
+    {
+        "name": "Hungarian paprika",
+        "unit": "tablespoon",
+        "amount": "1"
+    },
+    {
+        "name": "dried dill",
+        "unit": "teaspoons",
+        "amount": "2"
+    },
+    {
+        "name": "dried thyme",
+        "unit": "teaspoon",
+        "amount": "0.5"
+    },
+    {
+        "name": "chicken broth",
+        "unit": "cups",
+        "amount": "3"
+    },
+    {
+        "name": "Worcestershire sauce",
+        "unit": "teaspoon",
+        "amount": "1"
+    },
+    {
+        "name": "white flour",
+        "unit": "tablespoons",
+        "amount": "3"
+    },
+    {
+        "name": "whole milk",
+        "unit": "cup",
+        "amount": "1"
+    },
+    {
+        "name": "sour cream",
+        "unit": "cup",
+        "amount": "0.25"
+    },
+    {
+        "name": "lemon juice",
+        "unit": "tablespoon",
+        "amount": "1"
+    },
+    {
+        "name": "parsley",
+        "unit": "cup",
+        "amount": "0.25"
+    }
+]
+```
+
+Usage metadata: cached_content_token_count=None candidates_token_count=522 prompt_token_count=1805 total_token_count=2327

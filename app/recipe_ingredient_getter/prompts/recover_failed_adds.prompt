@@ -1,0 +1,34 @@
+The following items were supposed to conform to the format:
+
+```json
+{
+    "name": "ingredient name",
+    "unit": "unit of measurement",
+    "amount": "amout of ingredient"
+}
+```
+
+But they did not. Please correct the following item:
+
+__FAILED_ITEMS__
+
+Modify the items to conform to the format and re-enter it into a JSON list.
+If the item is missing a required field, add `null` as the value for that field.
+
+Here is an example of a correct output:
+```json
+[
+    {
+        "name": "sugar",
+        "unit": "grams",
+        "amount": "100"
+    },
+    {
+        "name": "milk",
+        "unit": "liters",
+        "amount": null
+    }
+]
+```
+
+Now please enter the corrected JSON list of ingredients.
