@@ -97,17 +97,27 @@ class RecipeIngredientGetter:
         with open("./recipe_ingredient_getter/prompts/make_recipe_json.prompt", "rt") as f:
             prompt = f.read()
         prompt = prompt.replace("__RECIPE_TEXT__", recipe_text)
+
         db_ingredients = self.get_all_ingredients_from_db()
         ingredient_prompt = ""
         for ingr in db_ingredients:
             ingredient_prompt += f"- {ingr}\n"
         prompt = prompt.replace("__INGREDIENT_LIST__", ingredient_prompt)
+
         db_units = self.get_all_measurement_units_from_db()
         unit_prompt = ""
         for unit in db_units:
             unit_prompt += f"- {unit}\n"
         prompt = prompt.replace("__UNIT_LIST__", unit_prompt)
+
+        db_categories = self.get_all_categories_from_db()
+        categ_prompt = ""
+        for categ in db_categories:
+            categ_prompt += f"- {categ}\n"
+        prompt = prompt.replace("__CATEGORY_LIST__", categ_prompt)
+
         llm_response = self.llm.send_prompt(prompt)
+
         try:
             ingredients = self.parse_ingredient_list_from_llm_response(
                 llm_response=llm_response,
