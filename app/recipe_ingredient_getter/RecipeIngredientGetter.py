@@ -11,6 +11,13 @@ class Ingredient:
     amount: float
     category: str
 
+@dataclass
+class Recipe:
+    id: str
+    name: str
+    full_text: str
+    source: str
+
 class RecipeIngredientGetter:
 
     def __init__(
@@ -39,6 +46,20 @@ class RecipeIngredientGetter:
         cursor = self.db_conn.cursor()
         result = cursor.execute(get_query)
         return [row[0] for row in result.fetchall()]
+    
+
+    def get_all_recipes_from_db(self) -> list[Recipe]:
+        get_query = "select id, name, full_text, recipe_source from recipes"
+        cursor = self.db_conn.cursor()
+        result = cursor.execute(get_query)
+        recipes = [Recipe(
+            id=row[0],
+            name=row[1],
+            full_text=row[2],
+            source=row[3]
+        ) for row in result.fetchall()]
+        return recipes
+
     
 
     def get_all_measurement_units_from_db(self) -> list[str]:
