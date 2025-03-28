@@ -1,5 +1,16 @@
-## Simple web stack setup
-This is a base setup for a simple web stack that includes a Python + Flask-based backend serving to an HTMX-based frontend hosted by NGINX.
+## Cooking and Shopping Assistant
+A web-based, AI-enabled, system for extracting ingredients from recipes and combining them into accurate and useful shopping lists.
+
+### Project Goals
+
+1. Extract ingredients from unstructured recipe data and store in a common format with common names and units of measurement
+2. Given a selected set of recipes, build a shopping list organized by categories that align to sections in a grocery store
+3. A web UI with:
+  a. A recipe selector / checklist
+  b. A generated shopping list that responds to selected recipes
+  c. A recipe upload / ingest tool (can be local document or website url)
+  d. Modes: recipe organization, shopping list building, shopping in a store
+
 
 ### Deploying
 You can launch the entire stack by running  ```bash launch_web_server.sh``` script, which will build and launch two containers:
