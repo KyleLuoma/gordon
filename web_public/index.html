@@ -87,18 +87,44 @@ function openArtifact() {
     <div id="myArtifactWindow" class="artifact_window" onclick="openArtifact()">
         <a href="javascript:void(0)" class="closebtn" onclick="event.stopPropagation(); closeArtifact()">&times;</a>
         <h3>Upload a Recipe</h3>
+
+        <div id="recpipe-text-input">
+            <form id="recipe-text-form" 
+            hx-post="/submit_recipe_text" 
+            hx-vals='js:{user_name: "test"}' 
+            hx-swap="none"
+            hx-on="htmx:afterRequest: htmx.trigger('#recipe-selector', 'refresh')"
+            >
+                <textarea id="recipe-text" name="recipe_text" rows="10" cols="50" placeholder="Paste your recipe text here"></textarea>
+                <br>
+                <label for="recipe-name">Recipe Name:</label>
+                <input type="text" id="recipe-name" name="recipe_name" placeholder="Enter recipe name">
+                <br>
+                <label for="recipe-source">Recipe Source:</label>
+                <input type="text" id="recipe-source" name="recipe_source" placeholder="Enter recipe source">
+                <br>
+                <button type="submit">Submit Recipe</button>
+            </form>
+        </div>
+        
+        <div id="recipe-selector">
+            <h3>Select Recipes</h3>
+            <div 
+                id="recipe-table-container" 
+                hx-get="/get_user_recipes?user_name=test" 
+                hx-trigger="load, refresh" 
+                hx-target="#recipe-table-container" 
+                hx-swap="outerHTML"
+                >
+                <!-- The table will be dynamically populated by the /get_user_recipes endpoint -->
+            </div>
+        </div>
+
         <div id="file-management">
             <div id="dropContainer" style="border:1px solid black;height:100px;">
                 Drop Here
             </div>
             <input type="file" id="fileInput" />
-        </div>
-
-        <div id="recipe-selector">
-            <h3>Select Recipes</h3>
-            <div id="recipe-table-container" hx-get="/get_user_recipes?user_name=test" hx-trigger="load" hx-target="#recipe-table-container" hx-swap="outerHTML">
-                <!-- The table will be dynamically populated by the /get_user_recipes endpoint -->
-            </div>
         </div>
     </div>
     
@@ -137,6 +163,7 @@ document.addEventListener("DOMContentLoaded", () => {
             row.classList.toggle("selected");
             console.log(`Row ${row.id} selection toggled.`);
             console.log(getSelectedRecipeIds());
+            htmx.trigger('#ingredient-list-container', 'refresh');
         }
     }
 
