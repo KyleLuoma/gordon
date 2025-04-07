@@ -20,12 +20,19 @@ class TableBuilder:
             thead_id = f"thead-{random.randint(1000, 99999999)}"
         if tbody_id == True:
             tbody_id = f"tbody-{random.randint(1000, 99999999)}"
+        if type(row_ids) == list:
+            assert(len(row_ids) == len(rows))
+        elif row_ids == True:
+            row_ids = [f"trow-{random.randint(1000, 99999999)}" for i in range(0, len(rows))]
         html_rows = []
         for row in rows:
             assert len(row) == len(column_header)
             html_rows.append("".join([f"<td>{str(val)}</td>" for val in row]))
         head = "".join([f"<th>{c}</th>" for c in column_header])
-        body = ("\n        ".join(f"<tr>{row}</tr>" for row in html_rows))
+        if row_ids == None:
+            body = ("\n        ".join(f"<tr>{row}</tr>" for row in html_rows))
+        else:
+            body = ("\n        ".join(f"<tr id={id}>{row}</tr>" for id, row in zip(row_ids, html_rows)))
         html = f"""
 <table{f' id="{table_id}"' if table_id != None else ''}>
     <thead{f' id="{thead_id}"' if thead_id != None else ''}>
@@ -87,10 +94,25 @@ class TableBuilder:
             assert len(table_dict[k]) == col_length
         columns = list(table_dict.keys())
         rows = [[table_dict[c][i] for c in columns] for i in range(0, col_length)]
-        return TableBuilder._render_table(column_header=columns, rows=rows)
+        return TableBuilder._render_table(
+            column_header=columns, 
+            rows=rows,
+            table_id=table_id,
+            thead_id=thead_id,
+            tbody_id=tbody_id,
+            row_ids=row_ids,
+            element_classes=element_classes
+            )
 
 
-    def row_wise_dict_list_to_html_table(dict_list: list[dict[str, object]]) -> str:
+    def row_wise_dict_list_to_html_table(
+            dict_list: list[dict[str, object]],
+            table_id: Union[str, bool] = None,
+            thead_id: Union[str, bool] = None,
+            tbody_id: Union[str, bool] = None,
+            row_ids: Union[list, bool] = None,
+            element_classes: dict = None
+            ) -> str:
         """
         Converts a list with row-wise data as dicts with column names as keys into an HTML table.
         Args:
@@ -125,4 +147,12 @@ class TableBuilder:
             assert len(row.keys()) == len(keys)
             assert set(keys) == set(row.keys())
             rows.append([row[k] for k in row.keys()])
-        return TableBuilder._render_table(column_header=keys, rows=rows)
+        return TableBuilder._render_table(
+            column_header=keys, 
+            rows=rows,
+            table_id=table_id,
+            thead_id=thead_id,
+            tbody_id=tbody_id,
+            row_ids=row_ids,
+            element_classes=element_classes
+            )

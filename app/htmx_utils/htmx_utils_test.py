@@ -67,3 +67,5 @@ class TestHtmxUtils:
     </tbody>
 </table>"""
 
+    
+

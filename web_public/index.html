@@ -7,35 +7,51 @@
     <link rel="stylesheet" type="text/css" href="./css/main.css">
 
     <script>
+var artifactOpen = true;
 
-        var artifactOpen = true;
+/* Set the width of the side navigation to 250px */
+function openNav() {
+    document.getElementById("mySidenav").style.width = "250px";
+    document.getElementById("main").style.marginLeft = "250px";
+}
 
-        /* Set the width of the side navigation to 250px */
-        function openNav() {
-            document.getElementById("mySidenav").style.width = "250px";
-            document.getElementById("main").style.marginLeft = "250px";
-        }
+/* Set the width of the side navigation to 0 */
+function closeNav() {
+    document.getElementById("mySidenav").style.width = "0";
+    document.getElementById("main").style.marginLeft = "0";
+} 
 
-        /* Set the width of the side navigation to 0 */
-        function closeNav() {
-            document.getElementById("mySidenav").style.width = "0";
-            document.getElementById("main").style.marginLeft = "0";
-        } 
+function closeArtifact() {
+    const artifactWindow = document.getElementById("myArtifactWindow");
+    console.log("Closing artifact window")
+    artifactWindow.style.width = "5%";
+    document.getElementById("main").style.marginRight = "5%";
+    artifactWindow.classList.add("closed");
+    artifactOpen = false;
+    setTimeout(() => {
+        artifactWindow.onclick = (event) => {
+            event.stopPropagation();
+            openArtifact();
+        };
+    }, 1000);
+}
 
-        function openOrCloseArtifact() {
-            if (!artifactOpen) {
-                document.getElementById("myArtifactWindow").style.width = "50%";
-                document.getElementById("main").style.marginRight = "50%";
-                artifactOpen = true;
-            } else {
-                document.getElementById("myArtifactWindow").style.width = "5%";
-                document.getElementById("main").style.marginRight = "5%";
-                artifactOpen = false;
-            }
-            
-        }
+function openArtifact() {
+    const artifactWindow = document.getElementById("myArtifactWindow");
+    if(artifactOpen){
+        return;
+    }
+    console.log("Opening artifact window");
+    artifactWindow.style.width = "50%";
+    document.getElementById("main").style.marginRight = "50%";
+    artifactWindow.classList.remove("closed");
+    artifactOpen = true;
+    artifactWindow.onclick = null;
+}
 
     </script>
+
+
 
 </head>
 <body>
@@ -52,23 +68,100 @@
       
       <!-- Add all page content inside this div if you want the side nav to push page content to the right (not used if you only want the sidenav to sit on top of the page -->
     <div id="main" class="main-window">
-        <h1>Welcome to My Web Page</h1>
-        <p>This is a basic HTML page copy.</p>
-
-        <button hx-put="/hello">
-            Put To Messages
-        </button>
-
-        <div class="chat-container">
-            <input type="text" class="chat-input" placeholder="Type your message..." />
+        <h1>Gordon: Cooking and Shopping Assistance</h1>
+        <p>Add recipes | generate shopping lists.</p>
+        <button onclick="htmx.trigger('#ingredient-list-container', 'refresh')">Update Shopping List</button>
+        <div id="shopping-list">
+            <h3>Shopping List</h3>
+            <div id="ingredient-list-container" 
+                 hx-post="/get_recipe_ingredients" 
+                 hx-vals='js:{user_name: "test", recipe_ids: getSelectedRecipeIds()}' 
+                 hx-trigger="refresh"
+                 hx-swap="innerHTML">
+                <!-- The ingredient list will be dynamically populated by the /get_recipe_ingredients endpoint -->
+            </div>
         </div>
 
     </div> 
 
-    <div id="myArtifactWindow" class="artifact_window" onclick="openOrCloseArtifact()">
-        <p>Hello World</p>
+    <div id="myArtifactWindow" class="artifact_window" onclick="openArtifact()">
+        <a href="javascript:void(0)" class="closebtn" onclick="event.stopPropagation(); closeArtifact()">&times;</a>
+        <h3>Upload a Recipe</h3>
+        <div id="file-management">
+            <div id="dropContainer" style="border:1px solid black;height:100px;">
+                Drop Here
+            </div>
+            <input type="file" id="fileInput" />
+        </div>
+
+        <div id="recipe-selector">
+            <h3>Select Recipes</h3>
+            <div id="recipe-table-container" hx-get="/get_user_recipes?user_name=test" hx-trigger="load" hx-target="#recipe-table-container" hx-swap="outerHTML">
+                <!-- The table will be dynamically populated by the /get_user_recipes endpoint -->
+            </div>
+        </div>
     </div>
     
     <script src="./js/htmx.min.js"></script>
+
+
+<script>
+        // https://stackoverflow.com/questions/8006715/drag-drop-files-into-standard-html-file-input
+        // dragover and dragenter events need to have 'preventDefault' called
+        // in order for the 'drop' event to register. 
+        // See: https://developer.mozilla.org/en-US/docs/Web/Guide/HTML/Drag_operations#droptargets
+        var dropContainer = document.getElementById("dropContainer");
+        dropContainer.ondragover = dropContainer.ondragenter = function(evt) {
+          evt.preventDefault();
+        };
+        
+        dropContainer.ondrop = function(evt) {
+          fileInput.files = evt.dataTransfer.files;
+        
+          // If you want to use some of the dropped files
+          const dT = new DataTransfer();
+          dT.items.add(evt.dataTransfer.files[0]);
+        //   dT.items.add(evt.dataTransfer.files[3]);
+          fileInput.files = dT.files;
+        
+          evt.preventDefault();
+        };
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    function handleRowSelection(event) {
+        console.log("handleRowSelection");
+        const row = event.target.closest("tr"); 
+        if (row && row.id) {
+            row.classList.toggle("selected");
+            console.log(`Row ${row.id} selection toggled.`);
+            console.log(getSelectedRecipeIds());
+        }
+    }
+
+    
+    document.body.addEventListener("click", (event) => {
+        const recipeTable = document.getElementById("recipe-list-table");
+        if (recipeTable && recipeTable.contains(event.target)) {
+            handleRowSelection(event);
+        }
+    });
+
+    document.body.addEventListener("htmx:afterSwap", (event) => {
+        if (event.target.id === "recipe-table-container") {
+            console.log("HTMX swap completed for recipe-table-container.");
+        }
+    });
+});
+
+
+function getSelectedRecipeIds() {
+    const selectedRows = document.querySelectorAll("#recipe-list-table tr.selected");
+    const selectedIds = Array.from(selectedRows).map(row => row.id.replace("recipe-", "").replace("-row", ""));
+    return "[" + selectedIds.map(id => `${id}`).join(", ") + "]";
+}
+</script>
+
 </body>
 </html>

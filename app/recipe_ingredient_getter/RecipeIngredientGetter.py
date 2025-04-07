@@ -189,3 +189,34 @@ class RecipeIngredientGetter:
                 ]
                 )
         self.db_conn.commit()
+
+    def get_ingredients_for_recipes(self, recipe_ids: list[int]) -> list[Ingredient]:
+        print("DEBUG", recipe_ids, type(recipe_ids))
+        query = """
+        select category, name, unit_of_measurement, sum(amount) as amount
+        from ingredients
+        where amount > 0 and recipe_id in ({})
+        group by category, name, unit_of_measurement
+
+        union
+
+        select category, name, unit_of_measurement, count(amount) as amount
+        from ingredients
+        where amount = -1 and recipe_id in ({})
+        group by category, name, unit_of_measurement
+        """.format(",".join("?" for _ in recipe_ids), ",".join("?" for _ in recipe_ids))
+        
+        cursor = self.db_conn.cursor()
+        result = cursor.execute(query, recipe_ids + recipe_ids)
+        rows = result.fetchall()
+
+        ingredients = []
+        for row in rows:
+            ingredients.append(Ingredient(
+                category=row[0],
+                name=row[1],
+                unit_of_measurement=row[2],
+                amount=row[3],
+                recipe_id=None
+            ))
+        return ingredients

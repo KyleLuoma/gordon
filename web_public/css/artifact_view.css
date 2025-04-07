@@ -9,5 +9,22 @@
     box-shadow: 5px;
     border-color: black;
     background-color: rgb(140, 140, 142);
+    overflow-x: hidden;
     transition: 0.5s;
+}
+
+.artifact_window.closed {
+    pointer-events: auto; /* Keep the container clickable */
+    opacity: 1; /* Ensure the container remains visible */
+}
+
+.artifact_window.closed > * {
+    pointer-events: none; /* Disable interaction with child elements */
+    opacity: 0; /* Hide child elements */
+    transition: opacity 0.5s; /* Smooth transition for hiding */
+}
+
+#recipe-list-table tr.selected {
+    background-color: #d3f9d8;
+    color: #000;
 }
