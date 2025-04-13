@@ -2,6 +2,7 @@ import sqlite3
 from llm_service.GoogleLLMService import GoogleLLMService
 from dataclasses import dataclass
 import json
+import os
 
 @dataclass
 class Ingredient:
@@ -24,21 +25,23 @@ class RecipeIngredientGetter:
             self, 
             llm: GoogleLLMService = None,
             user: str = "test",
+            build_db_on_init: bool = False
             ):
-        self.db_conn = sqlite3.connect(
-            f"./recipe_ingredient_getter/db/{user}.sqlite"
-            )
+        db_path = f"./recipe_ingredient_getter/db/{user}.sqlite"
+        db_exists = os.path.exists(db_path)
+        self.db_conn = sqlite3.connect(db_path)
         if llm == None:
             self.llm = GoogleLLMService()
         else:
             self.llm = llm
-        with open("./recipe_ingredient_getter/ingredient_db_builder.sql") as f:
-            build_query = f.read()
-            statements = build_query.split(";")
-        cursor = self.db_conn.cursor()
-        for statement in statements:
-            cursor.execute(statement)
-        self.db_conn.commit()
+        if build_db_on_init or not db_exists:
+            with open("./recipe_ingredient_getter/ingredient_db_builder.sql") as f:
+                build_query = f.read()
+                statements = build_query.split(";")
+            cursor = self.db_conn.cursor()
+            for statement in statements:
+                cursor.execute(statement)
+            self.db_conn.commit()
 
 
     def get_all_ingredients_from_db(self) -> list[str]:

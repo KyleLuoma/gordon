@@ -80,9 +80,6 @@ function openArtifact() {
                  hx-swap="innerHTML">
                 <!-- The ingredient list will be dynamically populated by the /get_recipe_ingredients endpoint -->
             </div>
-            <div id="additional-item-list-container">
-
-            </div>
         </div>
 
     </div> 
@@ -109,6 +106,29 @@ function openArtifact() {
                 <button type="submit">Submit Recipe</button>
             </form>
         </div>
+        
+        <div id="recipe-selector">
+            <h3>Select Recipes</h3>
+            <div
+                id="recipe-form-container"
+                hx-get="/get_user_recipes_as_form"
+                hx-vals='js:{user_name: "test"}'
+                hx-trigger="load once"
+                hx-target="#recipe-selection-form"
+                hx-swap="innerHTML"
+            >
+            <form
+                id="recipe-selection-form"
+                hx-post="/get_recipe_ingredients"
+                hx-vals='js:{user_name: "test"}'
+                hx-trigger="submit"
+                hx-target="#ingredient-list-container"
+                hx-swap="innerHTML"
+            >
+
+            </form>
+            </div>
+        </div>
 
         <div id="file-management">
             <div id="dropContainer" style="border:1px solid black;height:100px;">
@@ -116,44 +136,7 @@ function openArtifact() {
             </div>
             <input type="file" id="fileInput" />
         </div>
-        
-        <div id="recipe-selector">
-            <h3>Select Recipes</h3>
-            <div 
-                id="recipe-table-container" 
-                hx-get="/get_user_recipes" 
-                hx-vals='js:{user_name: "test"}' 
-                hx-trigger="load, refresh" 
-                hx-target="#recipe-table-container" 
-                hx-swap="outerHTML"
-                >
-                <!-- The table will be dynamically populated by the /get_user_recipes endpoint -->
-            </div>
-        </div>
-        <div id="item-manager">
-            <h3>Add Items</h3>
-            <form id="add-item-form" >
-            <div
-                id="additional-item-form-elements"
-                hx-get="/get_additional_item_selections"
-                hx-trigger="load, refresh"
-                hx-swap="innerHTML"
-            >
-
-            </div>
-            <label for="item-name">Item Name:</label>
-            <input type="text" id="item-name" name="item_name" placeholder="Enter item name">
-            <br>
-            <button type="submit"
-                hx-post="/add_additional_item"
-                hx-vals='js:{user_name: "test"}'
-                hx-target="#additional-item-list-container"
-                hx-trigger="click"
-                hx-swap="innerHTML"
-            >Add Item</button>
-            </form>
-        </div>
-    </div>      
+    </div>
     
     <script src="./js/htmx.min.js"></script>
 
@@ -179,42 +162,6 @@ function openArtifact() {
         
           evt.preventDefault();
         };
-</script>
-
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-    function handleRowSelection(event) {
-        console.log("handleRowSelection");
-        const row = event.target.closest("tr"); 
-        if (row && row.id) {
-            row.classList.toggle("selected");
-            console.log(`Row ${row.id} selection toggled.`);
-            console.log(getSelectedRecipeIds());
-            htmx.trigger('#ingredient-list-container', 'refresh');
-        }
-    }
-
-    
-    document.body.addEventListener("click", (event) => {
-        const recipeTable = document.getElementById("recipe-list-table");
-        if (recipeTable && recipeTable.contains(event.target)) {
-            handleRowSelection(event);
-        }
-    });
-
-    document.body.addEventListener("htmx:afterSwap", (event) => {
-        if (event.target.id === "recipe-table-container") {
-            console.log("HTMX swap completed for recipe-table-container.");
-        }
-    });
-});
-
-
-function getSelectedRecipeIds() {
-    const selectedRows = document.querySelectorAll("#recipe-list-table tr.selected");
-    const selectedIds = Array.from(selectedRows).map(row => row.id.replace("recipe-", "").replace("-row", ""));
-    return "[" + selectedIds.map(id => `${id}`).join(", ") + "]";
-}
 </script>
 
 </body>

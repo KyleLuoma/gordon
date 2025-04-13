@@ -14,15 +14,15 @@ class InputType(Enum):
         MONTH = "month"
         NUMBER = "number"
         PASSWORD = "password"
-        RADIO = "radio",
-        RANGE = "range",
-        RESET = "reset",
-        SEARCH = "search",
-        SUBMIT = "submit",
-        TEL = "tel",
-        TEXT = "text",
-        TIME = "time",
-        URL = "url",
+        RADIO = "radio"
+        RANGE = "range"
+        RESET = "reset"
+        SEARCH = "search"
+        SUBMIT = "submit"
+        TEL = "tel"
+        TEXT = "text"
+        TIME = "time"
+        URL = "url"
         WEEK = "week"
 
 
@@ -33,22 +33,28 @@ class LabelElement:
             for_attr: str, 
             label_text: str,
             css_class: str = None,
-            custom_attributes: dict = None
+            custom_attributes: dict = None,
+            linebreaks: int = 0
             ):
         self.for_attr = for_attr
         self.label_text = label_text
         self.css_class = css_class
         self.custom_attributes = custom_attributes
+        self.linebreaks = linebreaks
 
     def __str__(self) -> str:
         attributes = [f'for="{self.for_attr}"']
         if self.css_class:
-            attributes.append(f'flass="{self.css_class}"')
+            attributes.append(f'class="{self.css_class}"')
         if self.custom_attributes:
             for k in self.custom_attributes.keys():
                 attributes.append(f'{k}="{self.custom_attributes[k]}"')
                 
-        return f'<label {" ".join(attributes)}>{self.label_text}'
+        label = f'<label {" ".join(attributes)}>{self.label_text}</label>'
+        if self.linebreaks > 0:
+            for i in range(self.linebreaks):
+                label += "<br>"
+        return label
     
 
 class InputElement:
@@ -91,13 +97,26 @@ class InputElement:
 
 class FormBuilder:
 
-    def __init__(self):
+    def __init__(
+            self,
+            include_form_tags: bool = True,
+            method: str = None
+            ):
         self.form_items = []
+        self.include_form_tags = include_form_tags
 
     def add_element(self, element: Union[InputElement, LabelElement]):
         self.form_items.append(element)
 
     def _render_form(self) -> str:
-        form = "<form>\n"
+        if self.include_form_tags:
+            form = "<form>\n    "
+        else: 
+            form = ""
         form += "\n    ".join(str(item) for item in self.form_items)
-        form += "\n</form>"
+        if self.include_form_tags:
+            form += "\n</form>"
+        return form
+
+    def __str__(self) -> str:
+        return self._render_form()

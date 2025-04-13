@@ -3,6 +3,7 @@
     height: 100%;
     margin-right: 50%;
     position: fixed;
+    overflow-y: auto;
 }
 
 /* Parent container styles */
