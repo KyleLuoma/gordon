@@ -1,9 +1,141 @@
 
+:root {
+    --bg: #f4f6f4;
+    --surface: #ffffff;
+    --text: #1f2a1f;
+    --muted: #5a665a;
+    --border: #cfd8cf;
+    --primary: #2f6f3e;
+    --primary-strong: #255b32;
+    --radius: 10px;
+    --space-1: 0.5rem;
+    --space-2: 1rem;
+    --space-3: 1.5rem;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.4;
+    color: var(--text);
+    background: linear-gradient(180deg, #f8faf8 0%, var(--bg) 100%);
+}
+
 .main-window {
     height: 100%;
     margin-right: 50%;
     position: fixed;
     overflow-y: auto;
+    width: 50%;
+    background-color: transparent;
+}
+
+#main h1,
+#main h2,
+#main h3 {
+    margin-top: 0;
+}
+
+#shopping-list,
+#recipe-selector,
+#item-manager,
+#file-management,
+#recpipe-text-input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: var(--space-2);
+    margin-bottom: var(--space-2);
+}
+
+button,
+input,
+textarea,
+select {
+    font: inherit;
+}
+
+button {
+    background-color: var(--primary);
+    color: #ffffff;
+    border: 1px solid var(--primary-strong);
+    border-radius: 8px;
+    padding: 0.55rem 0.85rem;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: var(--primary-strong);
+}
+
+label {
+    display: inline-block;
+    margin-top: var(--space-1);
+    margin-bottom: 0.25rem;
+}
+
+input[type="text"],
+textarea,
+select,
+input[type="file"] {
+    width: 100%;
+    max-width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.5rem;
+    background: #ffffff;
+}
+
+textarea {
+    min-height: 160px;
+    resize: vertical;
+}
+
+.drop-container {
+    border: 2px dashed #7b8b7b;
+    border-radius: 8px;
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    margin-bottom: var(--space-1);
+    background-color: #f8fbf8;
+}
+
+.nav-open-button {
+    display: inline-block;
+    margin: var(--space-2);
+    padding: 0.45rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background-color: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+}
+
+#recipe-table-container,
+#ingredient-list-container,
+#additional-item-list-container {
+    overflow-x: auto;
+}
+
+#recipe-list-table {
+    width: 100%;
+    min-width: 520px;
+    border-collapse: collapse;
+}
+
+#recipe-list-table td,
+#recipe-list-table th {
+    border-bottom: 1px solid var(--border);
+    padding: 0.5rem;
+    text-align: left;
 }
 
 /* Parent container styles */
@@ -38,4 +170,41 @@
 .chat-input:focus {
     border-color: #007BFF; /* Blue border on focus */
     box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Add glow effect */
+}
+
+@media screen and (max-width: 900px) {
+    .main-window {
+        position: relative;
+        width: 100%;
+        height: auto;
+        margin-right: 0;
+        overflow: visible;
+    }
+
+    #main {
+        padding: 1rem;
+    }
+
+    .nav-open-button {
+        margin: 0.75rem;
+    }
+
+    #recipe-list-table {
+        min-width: 460px;
+    }
+}
+
+@media screen and (max-width: 640px) {
+    #main h1 {
+        font-size: 1.45rem;
+    }
+
+    button {
+        width: 100%;
+        margin-top: 0.35rem;
+    }
+
+    .drop-container {
+        min-height: 80px;
+    }
 }

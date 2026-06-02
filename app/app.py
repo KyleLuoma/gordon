@@ -147,24 +147,108 @@ def get_recipe_ingredients():
         row_ids=True
     )
 
-@app.route("/add_additional_item", methods=["POST"])
-def add_additional_item():
-    return ""
+@app.route("/get_combined_shopping_list_items", methods=["POST"])
+def get_combined_shopping_list_items():
+    user_name = request.form.get("user_name").strip()
+    list_id = request.form.get("list_id").strip()
+    if not user_name or not list_id:
+        return jsonify({"error": f"Missing required parameter."}), 400
+    list_manager = ShoppingListManager(user=user_name)
+    combined_ingredients = list_manager.get_combined_shopping_list_items(
+        list_id=int(list_id)
+    )
+    ing_table = TableBuilder.row_wise_dict_list_to_html_table(
+        dict_list=[{
+            "Category": ing.category,
+            "Ingredient": ing.item_name,
+            "Unit": ing.unit_of_measurement,
+            "Amount": ing.amount,
+            "From": ", ".join(ing.ingredient_recipes)
+        } for ing in combined_ingredients],
+        table_id="shopping-list-table",
+        thead_id="shopping-list-table-head",
+        tbody_id="shopping-list-table-body"
+    )
+    return ing_table
+
+
+@app.route("/add_additional_item_to_list", methods=["POST"])
+def add_additional_item_to_list():
+    user_name = (request.form.get("user_name") or "").strip()
+    list_id_raw = (request.form.get("list_id") or "").strip()
+    item_name = (request.form.get("item_name") or "").strip()
+    item_category = (request.form.get("item_category") or "").strip()
+
+    missing_params = []
+    if not user_name:
+        missing_params.append("user_name")
+    if not item_name:
+        missing_params.append("item_name")
+    if missing_params:
+        return jsonify({"error": f"missing attributes: {','.join(missing_params)}"}), 400
+
+    slm = ShoppingListManager(user=user_name)
+
+    if list_id_raw.isnumeric():
+        list_id = int(list_id_raw)
+    else:
+        cur = slm.db_conn.cursor()
+        cur.execute("SELECT id FROM shopping_list ORDER BY id DESC LIMIT 1")
+        last_row = cur.fetchone()
+        if last_row:
+            list_id = int(last_row[0])
+        else:
+            list_id = slm.make_new_list(name="Default Shopping List").id
+
+    category = item_category or "Additional Items"
+    slm.add_additional_item_to_list(
+        list_id=list_id,
+        item=AdditionalItem(
+            id=-1,
+            name=item_name,
+            category=category
+        )
+    )
+
+    combined_ingredients = slm.get_combined_shopping_list_items(list_id=list_id)
+    return TableBuilder.row_wise_dict_list_to_html_table(
+        dict_list=[{
+            "Category": ing.category,
+            "Ingredient": ing.item_name,
+            "Unit": ing.unit_of_measurement,
+            "Amount": ing.amount,
+            "From": ", ".join(ing.ingredient_recipes) if isinstance(ing.ingredient_recipes, list) else ing.ingredient_recipes
+        } for ing in combined_ingredients],
+        table_id="shopping-list-table",
+        thead_id="shopping-list-table-head",
+        tbody_id="shopping-list-table-body",
+        include_headers=False
+    )
+
+
+@app.route("/add_recipe_to_list", methods=["POST"])
+def add_recipe_to_list():
+    user_name = request.form.get("user_name").strip()
+    list_id = request.form.get("list_id").strip()
+
 
 @app.route("/get_additional_item_selections", methods=["GET"])
 def get_additional_item_selections():
-    fb = FormBuilder(include_form_tags=False)
-    fb.add_element(InputElement(
-        type=InputType.CHECKBOX,
-        id="item-1",
-        name="item_name",
-        value="test from api"
-    ))
-    fb.add_element(LabelElement(
-        for_attr="additional-item",
-        label_text="This is an additional item"
-    ))
-    return str(fb)
+    user_name = request.args.get("user_name", "test")
+    ingredient_getter = RecipeIngredientGetter(user=user_name)
+    categories = ingredient_getter.get_all_categories_from_db()
+    if len(categories) == 0:
+        categories = ["Additional Items"]
+
+    options = "\n".join([
+        f'<option value="{category}">{category}</option>' for category in categories
+    ])
+    return (
+        '<label for="item-category">Category:</label>'
+        '<select id="item-category" name="item_category">'
+        f'{options}'
+        '</select>'
+    )
 
 
 @app.route("/make_new_shopping_list", methods=["POST"])

@@ -10,7 +10,7 @@ class GoogleLLMService:
             genai_info = json.loads(f.read())
         self.api_key = genai_info["api_key"]
         self.project = genai_info["GOOGLE_CLOUD_PROJECT"]
-        self.model = "gemini-2.0-flash"
+        self.model = "gemini-3.1-flash-lite"
         self.log_folder = "./llm_service/logs"
         
     def send_prompt(self, prompt: str) -> str:

@@ -5,11 +5,11 @@
     position: fixed;
     top: 0;
     right: 0;
-    border-radius: 5px;
-    box-shadow: 5px;
-    border-color: black;
-    background-color: rgb(140, 140, 142);
+    border-radius: 0;
+    border-left: 1px solid #cfd8cf;
+    background-color: #eef3ee;
     overflow-x: hidden;
+    overflow-y: auto;
     transition: 0.5s;
 }
 
@@ -24,7 +24,32 @@
     transition: opacity 0.5s; /* Smooth transition for hiding */
 }
 
+.artifact_window .closebtn {
+    display: inline-block;
+    margin: 0.5rem 0.75rem 0;
+    font-size: 1.8rem;
+    text-decoration: none;
+    color: #304230;
+}
+
 #recipe-list-table tr.selected {
     background-color: #d3f9d8;
     color: #000;
+}
+
+@media screen and (max-width: 900px) {
+    .artifact_window {
+        position: relative;
+        width: 100% !important;
+        right: auto;
+        top: auto;
+        height: auto;
+        border-left: 0;
+        border-top: 1px solid #cfd8cf;
+    }
+
+    .artifact_window.closed {
+        max-height: 3.25rem;
+        overflow: hidden;
+    }
 }

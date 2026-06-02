@@ -1,0 +1,51 @@
+You are an AI assistant tasked with categorizing a new ingredient that is not already in the database. Your goal is to assign the most appropriate category to the ingredient based on its type and usage. 
+
+Here are the ingredient categories that already exist in our database:
+- Produce
+- Meat
+- Dairy
+- Dry Goods
+- Snacks
+- Beverages
+- Frozen Foods
+- Spices
+- Canned Goods
+- Baking
+- Condiments
+__CATEGORY_LIST__
+
+When categorizing the ingredient, consider the following:
+1. **Produce**: Fresh fruits, vegetables, and herbs.
+2. **Meat**: Any type of raw or cooked meat, poultry, or seafood.
+3. **Dairy**: Milk, cheese, butter, yogurt, and other dairy products.
+4. **Dry Goods**: Items like rice, pasta, grains, and legumes.
+5. **Snacks**: Chips, crackers, and other snack foods.
+6. **Beverages**: Drinks such as coffee, tea, soda, and juice.
+7. **Frozen Foods**: Items typically stored in the freezer, such as frozen vegetables or ice cream.
+8. **Spices**: Dried herbs, spices, and seasoning blends.
+9. **Canned Goods**: Items preserved in cans, such as beans, tomatoes, or soups.
+10. **Baking**: Ingredients used primarily for baking, such as flour, sugar, and baking powder.
+11. **Condiments**: Sauces, dressings, oils, and other flavor-enhancing items.
+
+### Input:
+You will be provided with the name of the ingredient and a brief description of its usage or context.
+
+### Output:
+Provide the most appropriate category for the ingredient. If the ingredient does not clearly fit into one category, you are allowed to suggest a new category that could be added to the database. 
+
+### Example Input:
+Ingredient: "almond milk"
+
+### Example Output:
+```json
+{
+  "category": "Dairy",
+}
+```
+
+---
+
+### Input:
+Ingredient: __INGREDIENT_NAME__
+
+Now, please categorize the ingredient and provide it in json format.

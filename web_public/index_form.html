@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Web Page</title>
     <link rel="stylesheet" type="text/css" href="./css/sidenav.css">
     <link rel="stylesheet" type="text/css" href="./css/artifact_view.css">
@@ -63,8 +65,8 @@ function openArtifact() {
         <a href="#">Contact</a>
     </div>
       
-      <!-- Use any element to open the sidenav -->
-      <span onclick="openNav()">open</span>
+    <!-- Use any element to open the sidenav -->
+    <span class="nav-open-button" onclick="openNav()">Menu</span>
       
       <!-- Add all page content inside this div if you want the side nav to push page content to the right (not used if you only want the sidenav to sit on top of the page -->
     <div id="main" class="main-window">
@@ -131,10 +133,35 @@ function openArtifact() {
         </div>
 
         <div id="file-management">
-            <div id="dropContainer" style="border:1px solid black;height:100px;">
+            <div id="dropContainer" class="drop-container">
                 Drop Here
             </div>
             <input type="file" id="fileInput" />
+        </div>
+
+        <div id="item-manager">
+            <h3>Add Items</h3>
+            <form id="add-item-form" >
+            <div
+                id="additional-item-form-elements"
+                hx-get="/get_additional_item_selections"
+                hx-vals='js:{user_name: "test"}'
+                hx-trigger="load, refresh"
+                hx-swap="innerHTML"
+            >
+
+            </div>
+            <label for="item-name">Item Name:</label>
+            <input type="text" id="item-name" name="item_name" placeholder="Enter item name">
+            <br>
+            <button type="submit"
+                hx-post="/add_additional_item_to_list"
+                hx-vals='js:{user_name: "test"}'
+                hx-target="#ingredient-list-container"
+                hx-trigger="click"
+                hx-swap="innerHTML"
+            >Add Item</button>
+            </form>
         </div>
     </div>
     
@@ -147,6 +174,7 @@ function openArtifact() {
         // in order for the 'drop' event to register. 
         // See: https://developer.mozilla.org/en-US/docs/Web/Guide/HTML/Drag_operations#droptargets
         var dropContainer = document.getElementById("dropContainer");
+    var fileInput = document.getElementById("fileInput");
         dropContainer.ondragover = dropContainer.ondragenter = function(evt) {
           evt.preventDefault();
         };

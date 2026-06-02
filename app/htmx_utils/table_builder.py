@@ -12,7 +12,8 @@ class TableBuilder:
         thead_id: Union[str, bool] = None,
         tbody_id: Union[str, bool] = None,
         row_ids: Union[list, bool] = None,
-        element_classes: dict[str, Union[str, list]] = None
+        element_classes: dict[str, Union[str, list]] = None,
+        include_headers: bool = True
     ) -> str:
         if table_id == True:
             table_id = f"table-{random.randint(1000, 99999999)}"
@@ -33,11 +34,16 @@ class TableBuilder:
             body = ("\n        ".join(f"<tr>{row}</tr>" for row in html_rows))
         else:
             body = ("\n        ".join(f"<tr id={id}>{row}</tr>" for id, row in zip(row_ids, html_rows)))
-        html = f"""
-<table{f' id="{table_id}"' if table_id != None else ''}>
+        if include_headers:
+            headers = f"""
     <thead{f' id="{thead_id}"' if thead_id != None else ''}>
         <tr>{head}</tr>
-    </thead>
+    </thead>"""
+        else:
+            headers = ""
+        html = f"""
+<table{f' id="{table_id}"' if table_id != None else ''}>
+    {headers}
     <tbody{f' id="{tbody_id}"' if tbody_id != None else ''}>
         {body}
     </tbody>
@@ -111,7 +117,8 @@ class TableBuilder:
             thead_id: Union[str, bool] = None,
             tbody_id: Union[str, bool] = None,
             row_ids: Union[list, bool] = None,
-            element_classes: dict = None
+            element_classes: dict = None,
+            include_headers: bool = False
             ) -> str:
         """
         Converts a list with row-wise data as dicts with column names as keys into an HTML table.
@@ -154,5 +161,6 @@ class TableBuilder:
             thead_id=thead_id,
             tbody_id=tbody_id,
             row_ids=row_ids,
-            element_classes=element_classes
+            element_classes=element_classes,
+            include_headers=include_headers
             )

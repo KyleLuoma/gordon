@@ -27,7 +27,7 @@ class RecipeIngredientGetter:
             user: str = "test",
             build_db_on_init: bool = False
             ):
-        db_path = f"./recipe_ingredient_getter/db/{user}.sqlite"
+        db_path = f"./shopping_list/db/{user}.sqlite"
         db_exists = os.path.exists(db_path)
         self.db_conn = sqlite3.connect(db_path)
         if llm == None:
@@ -35,7 +35,7 @@ class RecipeIngredientGetter:
         else:
             self.llm = llm
         if build_db_on_init or not db_exists:
-            with open("./recipe_ingredient_getter/ingredient_db_builder.sql") as f:
+            with open("./shopping_list/ingredient_db_builder.sql") as f:
                 build_query = f.read()
                 statements = build_query.split(";")
             cursor = self.db_conn.cursor()
@@ -73,7 +73,13 @@ class RecipeIngredientGetter:
     
 
     def get_all_categories_from_db(self) -> list[str]:
-        get_query = "select distinct category from ingredients"
+        get_query = """
+        select distinct category from (
+            select category from ingredients
+            union
+            select category from additional_items
+        )
+        """
         cursor = self.db_conn.cursor()
         result = cursor.execute(get_query)
         return [row[0] for row in result.fetchall()]
@@ -118,7 +124,7 @@ class RecipeIngredientGetter:
             recipe_id: int
             ) -> list[Ingredient]:
         
-        with open("./recipe_ingredient_getter/prompts/make_recipe_json.prompt", "rt") as f:
+        with open("./shopping_list/prompts/make_recipe_json.prompt", "rt") as f:
             prompt = f.read()
         prompt = prompt.replace("__RECIPE_TEXT__", recipe_text)
 

@@ -9,7 +9,7 @@ import os
 
 @dataclass
 class AdditionalItem:
-    id: str
+    id: int
     name: str
     category: str
 
@@ -20,20 +20,20 @@ class ShoppingListEntryType(Enum):
 @dataclass
 class ShoppingListItem:
     entry_type: ShoppingListEntryType
-    entry_id: str
-    entry_object: Union[AdditionalItem | RecipeIngredientGetter.Ingredient]
+    entry_id: int
+    entry_object: Union[AdditionalItem, RecipeIngredientGetter.Ingredient]
 
 @dataclass
 class ShoppingList:
-    id: str
+    id: int
     name: str
     created_at: str
     items: list[ShoppingListItem]
 
 @dataclass
 class CombinedShoppingListItem:
-    shopping_list_id: str
-    shopping_list_item_id: str
+    shopping_list_id: int
+    shopping_list_item_id: int
     category: str
     item_name: str
     ingredient_recipes: list
@@ -49,15 +49,16 @@ class ShoppingListManager:
             build_db_on_init: bool = False
             ):
         self.user = user
-        db_path = f"./recipe_ingredient_getter/db/{user}.sqlite"
+        db_path = f"./shopping_list/db/{user}.sqlite"
         db_exists = os.path.exists(db_path)
         self.db_conn = sqlite3.connect(db_path)
         if not db_exists or build_db_on_init:
-            with open("./recipe_ingredient_getter/ingredient_db_builder.sql") as f:
+            with open("./shopping_list/ingredient_db_builder.sql") as f:
                 build_query = f.read()
                 statements = build_query.split(";")
             cursor = self.db_conn.cursor()
             for statement in statements:
+                print(statement)
                 cursor.execute(statement)
             self.db_conn.commit()
         self.recipe_ingredient_getter = RecipeIngredientGetter.RecipeIngredientGetter(
@@ -68,7 +69,7 @@ class ShoppingListManager:
     def make_new_list(
             self,
             name: str,
-            items: list[Union[AdditionalItem | RecipeIngredientGetter.Ingredient]] = None
+            items: list[Union[AdditionalItem, RecipeIngredientGetter.Ingredient]] = None
             ) -> ShoppingList:
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         new_list_query = f"""
@@ -103,12 +104,50 @@ SELECT MAX(id) FROM shopping_list WHERE name = '{name}' and created_at = '{times
         return shopping_list
 
 
-    def add_additional_item_to_list(self, list_id: int, item: AdditionalItem):
-        add_item_query = """
-INSERT INTO shopping_list_items (shopping_list_id, entry_type, entry_id) VALUES (?, ?, ?)
+    def categorize_new_additional_item(self, item_name: str) -> str:
+        query = """
+SELECT category FROM (
+    select category from ingredients
+    union
+    select category from additional_items
+)
 """
         cur = self.db_conn.cursor()
-        cur.execute(add_item_query, [list_id, ShoppingListEntryType.ADDITIONAL_ITEM, item.id])
+        cur.execute(query)
+        categories = [row[0] for row in cur.fetchall()]
+        if categories:
+            return categories[0]
+        with open("./shopping_list/prompts/categorize_new_item.prompt", "rt") as f:
+            prompt = f.read()
+        existing_categories = self.recipe_ingredient_getter.get_all_categories_from_db()
+        prompt = prompt.replace("__CATEGORY_LIST__", "\n".join(existing_categories))
+        prompt = prompt.replace("__INGREDIENT_NAME__", item_name)
+        llm_response = self.recipe_ingredient_getter.llm.send_prompt(prompt)
+        
+        
+
+
+
+    def add_additional_item_to_list(self, list_id: int, item: AdditionalItem):
+        add_additional_item_query = """
+INSERT INTO additional_items (name, category) VALUES (?, ?)
+"""
+        cur = self.db_conn.cursor()
+        cur.execute(
+            add_additional_item_query,
+            [item.name, item.category]
+        )
+        new_item_id = cur.lastrowid
+        self.db_conn.commit()
+
+        add_item_to_list_query = """
+INSERT INTO shopping_list_items (shopping_list_id, entry_type, entry_id) VALUES (?, ?, ?)
+"""
+        
+        cur.execute(
+            add_item_to_list_query, 
+            [list_id, ShoppingListEntryType.ADDITIONAL_ITEM.value, new_item_id]
+            )
         self.db_conn.commit()
 
 
@@ -117,7 +156,7 @@ INSERT INTO shopping_list_items (shopping_list_id, entry_type, entry_id) VALUES 
 INSERT INTO shopping_list_items (shopping_list_id, entry_type, entry_id) VALUES (?, ?, ?)
 """
         cur = self.db_conn.cursor()
-        cur.execute(add_recipe_query, [list_id, ShoppingListEntryType.RECIPE, recipe.id])
+        cur.execute(add_recipe_query, [list_id, ShoppingListEntryType.RECIPE.value, recipe.id])
         self.db_conn.commit()
 
 
