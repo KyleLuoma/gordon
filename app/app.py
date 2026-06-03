@@ -35,6 +35,22 @@ def hello_world():
     return '<p>Hello, World!</p>'
 
 
+@app.route("/submit_recipe_url", methods=["POST"])
+def submit_recipe_url():
+    if "recipe_url" not in request.form or "user_name" not in request.form:
+        return jsonify({"error": "Missing 'recipe_url' or 'user_name' parameter"}), 400
+    
+    recipe_url = request.form.get("recipe_url")
+    user_name = request.form.get("user_name")
+    ingredient_getter = RecipeIngredientGetter(user=user_name)
+    response = ingredient_getter.add_recipe_to_database_from_url(
+        recipe_url=recipe_url
+    )
+    return jsonify({"message": response}), 200
+
+
+
+
 @app.route('/submit_recipe_text', methods=["POST"])
 def submit_recipe_text():
     if "recipe_text" not in request.form or "user_name" not in request.form:
@@ -61,6 +77,8 @@ def get_user_recipes():
     user_name = request.args.get("user_name")
     ingredient_getter = RecipeIngredientGetter(user=user_name) 
     recipes = ingredient_getter.get_all_recipes_from_db()
+    if len(recipes) == 0:
+        return ""
     return TableBuilder.row_wise_dict_list_to_html_table(
         dict_list=[
             {

@@ -1,5 +1,6 @@
 import sqlite3
 from llm_service.GoogleLLMService import GoogleLLMService
+from shopping_list.util.web_scraper import WebScraper
 from dataclasses import dataclass
 import json
 import os
@@ -34,6 +35,7 @@ class RecipeIngredientGetter:
             self.llm = GoogleLLMService()
         else:
             self.llm = llm
+        self.web_scraper = WebScraper()
         if build_db_on_init or not db_exists:
             with open("./shopping_list/ingredient_db_builder.sql") as f:
                 build_query = f.read()
@@ -51,8 +53,14 @@ class RecipeIngredientGetter:
         return [row[0] for row in result.fetchall()]
     
 
-    def get_all_recipes_from_db(self) -> list[Recipe]:
-        get_query = "select id, name, full_text, recipe_source from recipes"
+    def get_all_recipes_from_db(
+            self,
+            order_by_column: str = "name",
+            order_ascending: bool = True
+            ) -> list[Recipe]:
+        get_query = f"select id, name, full_text, recipe_source from recipes order by {order_by_column}"
+        if order_ascending:
+            get_query += " asc"
         cursor = self.db_conn.cursor()
         result = cursor.execute(get_query)
         recipes = [Recipe(
@@ -66,7 +74,7 @@ class RecipeIngredientGetter:
     
 
     def get_all_measurement_units_from_db(self) -> list[str]:
-        get_query = "select distinct unit_of_measurement from ingredients"
+        get_query = "select distinct unit_of_measurement from recipe_ingredients"
         cursor = self.db_conn.cursor()
         result = cursor.execute(get_query)
         return [row[0] for row in result.fetchall()]
@@ -76,8 +84,6 @@ class RecipeIngredientGetter:
         get_query = """
         select distinct category from (
             select category from ingredients
-            union
-            select category from additional_items
         )
         """
         cursor = self.db_conn.cursor()
@@ -116,6 +122,43 @@ class RecipeIngredientGetter:
             except KeyError as e:
                 failed_to_add.append(item)
         return ingredients
+
+
+    def add_recipe_to_database_from_url(
+            self,
+            recipe_url: str
+    ) -> str:
+        try:
+            recipe_html = self.web_scraper.get_text_from_url(recipe_url)
+        except Exception as e:
+            print(e)
+            return "Unable to scrape the provided URL"
+        with open("./shopping_list/prompts/extract_recipe_text_from_html.prompt") as f:
+            prompt = f.read()
+        prompt = prompt.replace("__RECIPE_URL__", recipe_url)
+        prompt = prompt.replace("__RECIPE_HTML__", recipe_html)
+
+        llm_response = self.llm.send_prompt(prompt)
+        response_json = llm_response.split("```json")[1].split("```")[0]
+        try:
+            response_dict = json.loads(response_json)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Failed to parse JSON from LLM response: {llm_response}, {e}")
+        if "error" in response_dict and "html_content_description" in response_dict:
+            return response_dict["error"] + " " + response_dict["html_content_description"]
+        
+        try:
+            self.add_recipe_to_database(
+                recipe_name=response_dict["recipe_title"],
+                recipe_text=(
+                    response_dict["recipe_description"]
+                    + response_dict["recipe_steps"]
+                    + response_dict["ingredients"]
+                ),
+                source=response_dict["website_title"]
+            )
+        except Exception as e:
+            return "Unable to extract a recipe from the provided URL"
 
     
     def extract_ingredients_from_text_recipe(
@@ -181,36 +224,48 @@ class RecipeIngredientGetter:
             recipe_text=recipe_text,
             recipe_id=recipe_id
         )
-        query = f"insert into ingredients (name, recipe_id, unit_of_measurement, amount, category) values (?, ?, ?, ?, ?)"
+        ing_query = f"insert into ingredients (name, category) values (?, ?)"
+        rec_ing_query = f"insert into recipe_ingredients (recipe_id, ingredient_id, unit_of_measurement, amount) values (?, ?, ?, ?)"
         for ingredient in ingredients:
             if ingredient.unit_of_measurement == None:
                 ingredient.unit_of_measurement = "None"
             if ingredient.amount == None:
                 ingredient.amount = -1
             cursor.execute(
-                query, 
+                ing_query, 
                 [
                     ingredient.name, 
-                    ingredient.recipe_id, 
-                    ingredient.unit_of_measurement,
-                    ingredient.amount,
                     ingredient.category
                 ]
                 )
+            self.db_conn.commit()
+            cursor.execute(
+                rec_ing_query,
+                [
+                    ingredient.recipe_id,
+                    cursor.lastrowid,
+                    ingredient.unit_of_measurement,
+                    ingredient.amount
+                ]
+            )
+            self.db_conn.commit()
         self.db_conn.commit()
+        
 
     def get_ingredients_for_recipes(self, recipe_ids: list[int]) -> list[Ingredient]:
         print("DEBUG", recipe_ids, type(recipe_ids))
         query = """
         select category, name, unit_of_measurement, sum(amount) as amount
-        from ingredients
+        from recipe_ingredients
+        join ingredients on recipe_ingredients.ingredient_id = ingredients.id
         where amount > 0 and recipe_id in ({})
         group by category, name, unit_of_measurement
 
         union
 
         select category, name, unit_of_measurement, count(amount) as amount
-        from ingredients
+        from recipe_ingredients
+        join ingredients on recipe_ingredients.ingredient_id = ingredients.id
         where amount = -1 and recipe_id in ({})
         group by category, name, unit_of_measurement
         """.format(",".join("?" for _ in recipe_ids), ",".join("?" for _ in recipe_ids))

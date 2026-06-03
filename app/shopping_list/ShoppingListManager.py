@@ -108,8 +108,6 @@ SELECT MAX(id) FROM shopping_list WHERE name = '{name}' and created_at = '{times
         query = """
 SELECT category FROM (
     select category from ingredients
-    union
-    select category from additional_items
 )
 """
         cur = self.db_conn.cursor()
@@ -130,7 +128,7 @@ SELECT category FROM (
 
     def add_additional_item_to_list(self, list_id: int, item: AdditionalItem):
         add_additional_item_query = """
-INSERT INTO additional_items (name, category) VALUES (?, ?)
+INSERT INTO ingredients (name, category) VALUES (?, ?)
 """
         cur = self.db_conn.cursor()
         cur.execute(

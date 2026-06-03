@@ -3,17 +3,28 @@ create table if not exists recipes (
     id integer primary key autoincrement,
     name text not null,
     full_text text not null,
-    recipe_source text not null
+    recipe_source text not null,
+    removed int not null default 0
+);
+
+create table if not exists recipe_ingredients (
+    recipe_id integer not null,
+    ingredient_id integer not null,
+    unit_of_measurement text not null,
+    amount float not null,
+    foreign key (recipe_id) references recipes(id),
+    foreign key (ingredient_id) references ingredients(id)
 );
 
 create table if not exists ingredients (
   id integer primary key autoincrement,
   name text not null,
-  recipe_id integer not null,
-  unit_of_measurement text not null,
-  amount float not null,
+  -- recipe_id integer not null,
+  -- unit_of_measurement text not null,
+  -- amount float not null,
   category text not null,
-  foreign key (recipe_id) references recipes(id)
+  -- foreign key (recipe_id) references recipes(id),
+  removed int not null default 0
 );
 
 create table if not exists additional_items (
@@ -45,12 +56,13 @@ select
   ig.category as category,
   ig.name as item_name,
   group_concat(re.name) as ingredient_recipes,
-  ig.unit_of_measurement as unit_of_measurement,
-  sum(ig.amount) * sli.scale_adjustment as amount
+  rig.unit_of_measurement as unit_of_measurement,
+  sum(rig.amount) * sli.scale_adjustment as amount
 from shopping_list sl
 join shopping_list_items sli on sli.shopping_list_id = sl.id
-join ingredients ig on sli.entry_id = ig.recipe_id
-join recipes re on re.id = ig.recipe_id
+join recipe_ingredients rig on sli.entry_id = rig.recipe_id
+join incredients ig on rig.incredient_id = ig.id
+join recipes re on re.id = rig.recipe_id
 where sli.entry_type = 'recipe' and sli.removed = 0
 group by sl.id, ig.category, ig.name, ig.unit_of_measurement
 
@@ -66,7 +78,7 @@ select
   1 as amount
 from shopping_list sl
 join shopping_list_items sli on sli.shopping_list_id = sl.id
-join additional_items it on sli.entry_id = it.id
+join ingredients ig on sli.entry_id = ig.id
 where sli.entry_type = 'additional_item' and sli.removed = 0
 ;
 

@@ -2,3 +2,4 @@ gunicorn
 flask
 flask_cors
 google-genai
+requests

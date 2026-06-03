@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Web Page</title>
+    <title>Recipe-Informed Shopping List Builder</title>
     <link rel="stylesheet" type="text/css" href="./css/sidenav.css">
     <link rel="stylesheet" type="text/css" href="./css/artifact_view.css">
     <link rel="stylesheet" type="text/css" href="./css/main.css">
@@ -73,6 +73,19 @@ function openArtifact() {
         <h1>Gordon: Cooking and Shopping Assistance</h1>
         <p>Add recipes | generate shopping lists.</p>
         <button onclick="htmx.trigger('#ingredient-list-container', 'refresh')">Update Shopping List</button>
+        <div id="recipe-selector">
+            <h3>Select Recipes</h3>
+            <div 
+                id="recipe-table-container" 
+                hx-get="/get_user_recipes" 
+                hx-vals='js:{user_name: "test"}' 
+                hx-trigger="load, refresh" 
+                hx-target="#recipe-table-container" 
+                hx-swap="innerHTML"
+                >
+                <!-- The table will be dynamically populated by the /get_user_recipes endpoint -->
+            </div>
+        </div>
         <div id="shopping-list">
             <h3>Shopping List</h3>
             <div id="ingredient-list-container" 
@@ -92,14 +105,28 @@ function openArtifact() {
 
     <div id="myArtifactWindow" class="artifact_window" onclick="openArtifact()">
         <a href="javascript:void(0)" class="closebtn" onclick="event.stopPropagation(); closeArtifact()">&times;</a>
-        <h3>Upload a Recipe</h3>
+        
+        <h3>Add an Online Recipe</h3>
+        <div id="recipe-url-input">
+            <form id="recipe-url-form"
+            hx-post="/submit_recipe_url"
+            hx-vals='js:{user_name: "test"}'
+            hx-swap="none"
+            hx-on::after-request="htmx.trigger('#recipe-table-container', 'refresh')"
+            >
+                <input type="text" id="recipe-url" name="recipe_url" placeholder="Recipe URL">
+                <br>
+                <button type="submit">Analyze Recipe Page</button>
+            </form>
+        </div>
 
+        <h3>Upload a Recipe</h3>
         <div id="recpipe-text-input">
             <form id="recipe-text-form" 
             hx-post="/submit_recipe_text" 
             hx-vals='js:{user_name: "test"}' 
             hx-swap="none"
-            hx-on="htmx:afterRequest: htmx.trigger('#recipe-selector', 'refresh')"
+            hx-on::after-request="htmx.trigger('#recipe-table-container', 'refresh')"
             >
                 <textarea id="recipe-text" name="recipe_text" rows="10" cols="50" placeholder="Paste your recipe text here"></textarea>
                 <br>
@@ -120,19 +147,7 @@ function openArtifact() {
             <input type="file" id="fileInput" />
         </div>
         
-        <div id="recipe-selector">
-            <h3>Select Recipes</h3>
-            <div 
-                id="recipe-table-container" 
-                hx-get="/get_user_recipes" 
-                hx-vals='js:{user_name: "test"}' 
-                hx-trigger="load, refresh" 
-                hx-target="#recipe-table-container" 
-                hx-swap="outerHTML"
-                >
-                <!-- The table will be dynamically populated by the /get_user_recipes endpoint -->
-            </div>
-        </div>
+        
         <div id="item-manager">
             <h3>Add Items</h3>
             <form id="add-item-form" >

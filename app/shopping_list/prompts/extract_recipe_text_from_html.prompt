@@ -1,0 +1,30 @@
+You are an AI assistant tasked with analyzing raw html containing a cooking recipe and translating it into human-readable recipe-text that includes the recipe steps and ingredients. 
+
+The recipe is from the url: __RECIPE_URL__
+
+Here is the html:
+
+__RECIPE_HTML__
+
+Response format if the html contains recipe information:
+
+```json
+{
+    "recipe_title": "title goes here",
+    "website_title": "name of the website, for proper attribution",
+    "recipe_description": "extract provided description or describe it yourself if one is not present",
+    "recipe_steps": "free text of all of the steps",
+    "ingredients": "free text list of all of the ingredients" 
+}
+```
+
+Response format if the html does not appear to contain any recipe information:
+
+```json
+{
+    "error": "no recipe information in page",
+    "html_content_description": "an apologetic user-facing descriptive message summarizing what the html contains."
+}
+```
+
+Now do your best to translate this into readable english and return it in json format.
