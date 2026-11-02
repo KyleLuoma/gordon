@@ -42,6 +42,8 @@ body {
 }
 
 #shopping-list,
+#shopping-list-live,
+#shopping-list-controls,
 #recipe-selector,
 #item-manager,
 #file-management,
@@ -207,4 +209,11 @@ textarea {
     .drop-container {
         min-height: 80px;
     }
+}
+
+.status-message {
+    margin-top: var(--space-1);
+    min-height: 1.25rem;
+    font-size: 0.95rem;
+    color: var(--muted);
 }

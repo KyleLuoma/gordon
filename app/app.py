@@ -29,6 +29,34 @@ from htmx_utils.table_builder import TableBuilder
 app = Flask(__name__)
 CORS(app)
 
+
+def _resolve_or_create_list_id(slm: ShoppingListManager, list_id_raw: str) -> int:
+    if list_id_raw and list_id_raw.isnumeric():
+        return int(list_id_raw)
+
+    cur = slm.db_conn.cursor()
+    cur.execute("SELECT id FROM shopping_list ORDER BY id DESC LIMIT 1")
+    last_row = cur.fetchone()
+    if last_row:
+        return int(last_row[0])
+    return slm.make_new_list(name="Default Shopping List").id
+
+
+def _combined_items_to_table(combined_ingredients: list[CombinedShoppingListItem]) -> str:
+    return TableBuilder.row_wise_dict_list_to_html_table(
+        dict_list=[{
+            "Category": ing.category,
+            "Ingredient": ing.item_name,
+            "Unit": ing.unit_of_measurement,
+            "Amount": ing.amount,
+            "From": ", ".join(ing.ingredient_recipes) if isinstance(ing.ingredient_recipes, list) else ing.ingredient_recipes
+        } for ing in combined_ingredients],
+        table_id="shopping-list-table",
+        thead_id="shopping-list-table-head",
+        tbody_id="shopping-list-table-body",
+        include_headers=True
+    )
+
 @app.route('/hello', methods=['PUT'])
 def hello_world():
     return '<p>Hello, World!</p>'
@@ -176,19 +204,28 @@ def get_combined_shopping_list_items():
     combined_ingredients = list_manager.get_combined_shopping_list_items(
         list_id=int(list_id)
     )
-    ing_table = TableBuilder.row_wise_dict_list_to_html_table(
-        dict_list=[{
-            "Category": ing.category,
-            "Ingredient": ing.item_name,
-            "Unit": ing.unit_of_measurement,
-            "Amount": ing.amount,
-            "From": ", ".join(ing.ingredient_recipes)
-        } for ing in combined_ingredients],
-        table_id="shopping-list-table",
-        thead_id="shopping-list-table-head",
-        tbody_id="shopping-list-table-body"
-    )
-    return ing_table
+    return _combined_items_to_table(combined_ingredients)
+
+
+@app.route("/get_user_shopping_lists", methods=["GET"])
+def get_user_shopping_lists():
+    user_name = (request.args.get("user_name") or "").strip()
+    if not user_name:
+        return jsonify({"error": "missing attributes: user_name"}), 400
+
+    slm = ShoppingListManager(user=user_name)
+    cur = slm.db_conn.cursor()
+    cur.execute("SELECT id, name, created_at FROM shopping_list ORDER BY id DESC")
+    rows = cur.fetchall()
+    return jsonify({
+        "lists": [
+            {
+                "id": row[0],
+                "name": row[1],
+                "created_at": row[2]
+            } for row in rows
+        ]
+    }), 200
 
 
 @app.route("/add_additional_item_to_list", methods=["POST"])
@@ -208,16 +245,7 @@ def add_additional_item_to_list():
 
     slm = ShoppingListManager(user=user_name)
 
-    if list_id_raw.isnumeric():
-        list_id = int(list_id_raw)
-    else:
-        cur = slm.db_conn.cursor()
-        cur.execute("SELECT id FROM shopping_list ORDER BY id DESC LIMIT 1")
-        last_row = cur.fetchone()
-        if last_row:
-            list_id = int(last_row[0])
-        else:
-            list_id = slm.make_new_list(name="Default Shopping List").id
+    list_id = _resolve_or_create_list_id(slm, list_id_raw)
 
     category = item_category or "Additional Items"
     slm.add_additional_item_to_list(
@@ -230,19 +258,7 @@ def add_additional_item_to_list():
     )
 
     combined_ingredients = slm.get_combined_shopping_list_items(list_id=list_id)
-    return TableBuilder.row_wise_dict_list_to_html_table(
-        dict_list=[{
-            "Category": ing.category,
-            "Ingredient": ing.item_name,
-            "Unit": ing.unit_of_measurement,
-            "Amount": ing.amount,
-            "From": ", ".join(ing.ingredient_recipes) if isinstance(ing.ingredient_recipes, list) else ing.ingredient_recipes
-        } for ing in combined_ingredients],
-        table_id="shopping-list-table",
-        thead_id="shopping-list-table-head",
-        tbody_id="shopping-list-table-body",
-        include_headers=False
-    )
+    return _combined_items_to_table(combined_ingredients)
 
 
 @app.route("/add_recipe_to_list", methods=["POST"])
@@ -261,16 +277,7 @@ def add_recipe_to_list():
 
     slm = ShoppingListManager(user=user_name)
 
-    if list_id_raw.isnumeric():
-        list_id = int(list_id_raw)
-    else:
-        cur = slm.db_conn.cursor()
-        cur.execute("SELECT id FROM shopping_list ORDER BY id DESC LIMIT 1")
-        last_row = cur.fetchone()
-        if last_row:
-            list_id = int(last_row[0])
-        else:
-            list_id = slm.make_new_list(name="Default Shopping List").id
+    list_id = _resolve_or_create_list_id(slm, list_id_raw)
 
     recipe_id = int(recipe_id_raw)
     cur = slm.db_conn.cursor()
@@ -288,19 +295,60 @@ def add_recipe_to_list():
     )
 
     combined_ingredients = slm.get_combined_shopping_list_items(list_id=list_id)
-    return TableBuilder.row_wise_dict_list_to_html_table(
-        dict_list=[{
-            "Category": ing.category,
-            "Ingredient": ing.item_name,
-            "Unit": ing.unit_of_measurement,
-            "Amount": ing.amount,
-            "From": ", ".join(ing.ingredient_recipes) if isinstance(ing.ingredient_recipes, list) else ing.ingredient_recipes
-        } for ing in combined_ingredients],
-        table_id="shopping-list-table",
-        thead_id="shopping-list-table-head",
-        tbody_id="shopping-list-table-body",
-        include_headers=False
-    )
+    return _combined_items_to_table(combined_ingredients)
+
+
+@app.route("/add_recipes_to_list", methods=["POST"])
+def add_recipes_to_list():
+    user_name = (request.form.get("user_name") or "").strip()
+    list_id_raw = (request.form.get("list_id") or "").strip()
+    recipe_ids_raw = (request.form.get("recipe_ids") or "").strip()
+
+    missing_params = []
+    if not user_name:
+        missing_params.append("user_name")
+    if not recipe_ids_raw:
+        missing_params.append("recipe_ids")
+    if missing_params:
+        return jsonify({"error": f"missing attributes: {','.join(missing_params)}"}), 400
+
+    recipe_ids = []
+    if "[" in recipe_ids_raw and "]" in recipe_ids_raw:
+        recipe_ids = recipe_ids_raw.replace("[", "").replace("]", "").split(",")
+        recipe_ids = [int(rid) for rid in recipe_ids if rid.strip().isnumeric()]
+    if len(recipe_ids) == 0:
+        return jsonify({"error": "recipe_ids must contain at least one valid id"}), 400
+
+    slm = ShoppingListManager(user=user_name)
+    list_id = _resolve_or_create_list_id(slm, list_id_raw)
+
+    cur = slm.db_conn.cursor()
+    for recipe_id in recipe_ids:
+        cur.execute(
+            "SELECT 1 FROM recipes WHERE id = ? AND removed = 0",
+            [recipe_id]
+        )
+        recipe_exists = cur.fetchone() is not None
+        if not recipe_exists:
+            continue
+
+        cur.execute(
+            """
+            SELECT 1
+            FROM shopping_list_items
+            WHERE shopping_list_id = ? AND entry_type = ? AND entry_id = ? AND removed = 0
+            """,
+            [list_id, ShoppingListEntryType.RECIPE.value, recipe_id]
+        )
+        already_added = cur.fetchone() is not None
+        if not already_added:
+            slm.add_recipe_to_list(
+                list_id=list_id,
+                recipe=Recipe(id=recipe_id, name="", full_text="", source="")
+            )
+
+    combined_ingredients = slm.get_combined_shopping_list_items(list_id=list_id)
+    return _combined_items_to_table(combined_ingredients)
 
 
 @app.route("/get_additional_item_selections", methods=["GET"])
@@ -324,8 +372,8 @@ def get_additional_item_selections():
 
 @app.route("/make_new_shopping_list", methods=["POST"])
 def make_new_shopping_list():
-    user_name = request.form.get("user_name")
-    list_name = request.form.get("list_name")
+    user_name = (request.form.get("user_name") or "").strip()
+    list_name = (request.form.get("list_name") or "").strip()
     missing_attr = []
     if not user_name:
         missing_attr.append("user_name")
@@ -336,6 +384,10 @@ def make_new_shopping_list():
     
     slm = ShoppingListManager(user=user_name)
     new_list = slm.make_new_list(name=list_name)
-    return f'<div id="shopping-list-{new_list.id}"><h3>Shopping List {new_list.name}</h3></div>'
+    return jsonify({
+        "list_id": new_list.id,
+        "list_name": new_list.name,
+        "created_at": new_list.created_at
+    }), 200
 
 

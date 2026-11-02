@@ -72,13 +72,33 @@ function openArtifact() {
     <div id="main" class="main-window">
         <h1>Gordon: Cooking and Shopping Assistance</h1>
         <p>Add recipes | generate shopping lists.</p>
-        <button onclick="htmx.trigger('#ingredient-list-container', 'refresh')">Update Shopping List</button>
+
+        <div id="shopping-list-controls">
+            <h3>List Controls</h3>
+            <label for="user-name">User:</label>
+            <input type="text" id="user-name" name="user_name" value="test" placeholder="Enter user name">
+
+            <label for="list-name">New List Name:</label>
+            <input type="text" id="list-name" name="list_name" value="Weekly Shopping" placeholder="Enter list name">
+            <button type="button" onclick="createShoppingList()">Create List</button>
+
+            <label for="shopping-list-select">Existing Lists:</label>
+            <select id="shopping-list-select" name="shopping_list_select"></select>
+            <button type="button" onclick="loadSelectedShoppingList()">Load Selected List</button>
+
+            <button type="button" onclick="addSelectedRecipesToActiveList()">Add Selected Recipes To Active List</button>
+            <button type="button" onclick="refreshActiveShoppingList()">Refresh Active Shopping List</button>
+
+            <div id="list-status-message" class="status-message"></div>
+            <input type="hidden" id="active-list-id" value="">
+        </div>
+
         <div id="recipe-selector">
             <h3>Select Recipes</h3>
             <div 
                 id="recipe-table-container" 
                 hx-get="/get_user_recipes" 
-                hx-vals='js:{user_name: "test"}' 
+                hx-vals='js:{user_name: getUserName()}' 
                 hx-trigger="load, refresh" 
                 hx-target="#recipe-table-container" 
                 hx-swap="innerHTML"
@@ -87,17 +107,19 @@ function openArtifact() {
             </div>
         </div>
         <div id="shopping-list">
-            <h3>Shopping List</h3>
+            <h3>Selected Recipe Ingredient Preview</h3>
             <div id="ingredient-list-container" 
                  hx-post="/get_recipe_ingredients" 
-                 hx-vals='js:{user_name: "test", recipe_ids: getSelectedRecipeIds()}' 
+                 hx-vals='js:{user_name: getUserName(), recipe_ids: getSelectedRecipeIds()}' 
                  hx-trigger="refresh"
                  hx-swap="innerHTML">
                 <!-- The ingredient list will be dynamically populated by the /get_recipe_ingredients endpoint -->
             </div>
-            <div id="additional-item-list-container"
-                
-            >
+        </div>
+
+        <div id="shopping-list-live">
+            <h3>Active Shopping List</h3>
+            <div id="combined-shopping-list-container">
             </div>
         </div>
 
@@ -110,9 +132,9 @@ function openArtifact() {
         <div id="recipe-url-input">
             <form id="recipe-url-form"
             hx-post="/submit_recipe_url"
-            hx-vals='js:{user_name: "test"}'
+            hx-vals='js:{user_name: getUserName()}'
             hx-swap="none"
-            hx-on::after-request="htmx.trigger('#recipe-table-container', 'refresh')"
+            hx-on::after-request="htmx.trigger('#recipe-table-container', 'refresh'); refreshShoppingLists(); setStatus('Recipe URL submitted.');"
             >
                 <input type="text" id="recipe-url" name="recipe_url" placeholder="Recipe URL">
                 <br>
@@ -124,9 +146,9 @@ function openArtifact() {
         <div id="recpipe-text-input">
             <form id="recipe-text-form" 
             hx-post="/submit_recipe_text" 
-            hx-vals='js:{user_name: "test"}' 
+            hx-vals='js:{user_name: getUserName()}' 
             hx-swap="none"
-            hx-on::after-request="htmx.trigger('#recipe-table-container', 'refresh')"
+            hx-on::after-request="htmx.trigger('#recipe-table-container', 'refresh'); refreshShoppingLists(); setStatus('Recipe text submitted.');"
             >
                 <textarea id="recipe-text" name="recipe_text" rows="10" cols="50" placeholder="Paste your recipe text here"></textarea>
                 <br>
@@ -154,7 +176,7 @@ function openArtifact() {
             <div
                 id="additional-item-form-elements"
                 hx-get="/get_additional_item_selections"
-                hx-vals='js:{user_name: "test"}'
+                hx-vals='js:{user_name: getUserName()}'
                 hx-trigger="load, refresh"
                 hx-swap="innerHTML"
             >
@@ -165,10 +187,11 @@ function openArtifact() {
             <br>
             <button type="submit"
                 hx-post="/add_additional_item_to_list"
-                hx-vals='js:{user_name: "test"}'
-                hx-target="#additional-item-list-container"
+                hx-vals='js:{user_name: getUserName(), list_id: getActiveListId()}'
+                hx-target="#combined-shopping-list-container"
                 hx-trigger="click"
                 hx-swap="innerHTML"
+                hx-on::after-request="setStatus('Item added to active list.');"
             >Add Item</button>
             </form>
         </div>
@@ -227,6 +250,8 @@ document.addEventListener("DOMContentLoaded", () => {
             console.log("HTMX swap completed for recipe-table-container.");
         }
     });
+
+    refreshShoppingLists();
 });
 
 
@@ -234,6 +259,171 @@ function getSelectedRecipeIds() {
     const selectedRows = document.querySelectorAll("#recipe-list-table tr.selected");
     const selectedIds = Array.from(selectedRows).map(row => row.id.replace("recipe-", "").replace("-row", ""));
     return "[" + selectedIds.map(id => `${id}`).join(", ") + "]";
+}
+
+function getUserName() {
+    const input = document.getElementById("user-name");
+    const value = (input?.value || "").trim();
+    return value || "test";
+}
+
+function getActiveListId() {
+    return (document.getElementById("active-list-id")?.value || "").trim();
+}
+
+function setActiveListId(listId) {
+    document.getElementById("active-list-id").value = listId ? String(listId) : "";
+}
+
+function setStatus(message, isError = false) {
+    const status = document.getElementById("list-status-message");
+    status.textContent = message;
+    status.style.color = isError ? "#9b1c1c" : "#1f2a1f";
+}
+
+async function createShoppingList() {
+    const listName = (document.getElementById("list-name")?.value || "").trim();
+    if (!listName) {
+        setStatus("Please provide a list name.", true);
+        return;
+    }
+
+    const formData = new URLSearchParams();
+    formData.append("user_name", getUserName());
+    formData.append("list_name", listName);
+
+    try {
+        const response = await fetch("/make_new_shopping_list", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: formData.toString()
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+            setStatus(payload.error || "Unable to create list.", true);
+            return;
+        }
+
+        setActiveListId(payload.list_id);
+        await refreshShoppingLists(payload.list_id);
+        await refreshActiveShoppingList();
+        setStatus(`Active list: ${payload.list_name} (#${payload.list_id})`);
+    } catch (err) {
+        setStatus("Failed to create shopping list.", true);
+    }
+}
+
+async function refreshShoppingLists(preferredId = null) {
+    const select = document.getElementById("shopping-list-select");
+    try {
+        const response = await fetch(`/get_user_shopping_lists?user_name=${encodeURIComponent(getUserName())}`);
+        const payload = await response.json();
+        if (!response.ok) {
+            setStatus(payload.error || "Unable to load shopping lists.", true);
+            return;
+        }
+
+        select.innerHTML = "";
+        const lists = payload.lists || [];
+        if (lists.length === 0) {
+            const opt = document.createElement("option");
+            opt.value = "";
+            opt.textContent = "No shopping lists yet";
+            select.appendChild(opt);
+            setActiveListId("");
+            return;
+        }
+
+        for (const list of lists) {
+            const opt = document.createElement("option");
+            opt.value = list.id;
+            opt.textContent = `#${list.id} - ${list.name}`;
+            select.appendChild(opt);
+        }
+
+        const desiredId = preferredId || getActiveListId() || lists[0].id;
+        select.value = String(desiredId);
+        setActiveListId(select.value);
+    } catch (err) {
+        setStatus("Failed to refresh shopping list selections.", true);
+    }
+}
+
+async function loadSelectedShoppingList() {
+    const listId = document.getElementById("shopping-list-select")?.value || "";
+    if (!listId) {
+        setStatus("Select a shopping list first.", true);
+        return;
+    }
+    setActiveListId(listId);
+    await refreshActiveShoppingList();
+    setStatus(`Loaded shopping list #${listId}`);
+}
+
+async function refreshActiveShoppingList() {
+    const listId = getActiveListId();
+    if (!listId) {
+        setStatus("No active list selected.", true);
+        return;
+    }
+
+    const formData = new URLSearchParams();
+    formData.append("user_name", getUserName());
+    formData.append("list_id", listId);
+
+    try {
+        const response = await fetch("/get_combined_shopping_list_items", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: formData.toString()
+        });
+        const html = await response.text();
+        document.getElementById("combined-shopping-list-container").innerHTML = html;
+    } catch (err) {
+        setStatus("Unable to refresh active shopping list.", true);
+    }
+}
+
+async function addSelectedRecipesToActiveList() {
+    const listId = getActiveListId();
+    if (!listId) {
+        setStatus("Create or load a shopping list first.", true);
+        return;
+    }
+
+    const selected = getSelectedRecipeIds();
+    if (selected === "[]") {
+        setStatus("Select at least one recipe.", true);
+        return;
+    }
+
+    const formData = new URLSearchParams();
+    formData.append("user_name", getUserName());
+    formData.append("list_id", listId);
+    formData.append("recipe_ids", selected);
+
+    try {
+        const response = await fetch("/add_recipes_to_list", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: formData.toString()
+        });
+        const text = await response.text();
+        if (!response.ok) {
+            let errorMessage = "Unable to add selected recipes to list.";
+            try {
+                errorMessage = JSON.parse(text).error || errorMessage;
+            } catch (err) {
+                // Keep fallback message.
+            }
+            setStatus(errorMessage, true);
+            return;
+        }
+        document.getElementById("combined-shopping-list-container").innerHTML = text;
+        setStatus("Selected recipes added to active list.");
+    } catch (err) {
+        setStatus("Request failed while adding recipes.", true);
+    }
 }
 </script>
 
