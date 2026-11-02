@@ -18,6 +18,7 @@ class TestShoppingListManager:
         new_list = slm.make_new_list(
             name="test-list"
         )
+        slm.recipe_ingredient_getter.db_conn.close()
         slm.db_conn.close()
         
         assert type(new_list) == ShoppingList
@@ -39,6 +40,7 @@ class TestShoppingListManager:
             )
         )
         slist = slm.get_combined_shopping_list_items(new_list.id)
+        slm.recipe_ingredient_getter.db_conn.close()
         slm.db_conn.close()
         assert slist[0].item_name == "test-item"
 

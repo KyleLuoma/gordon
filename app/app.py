@@ -27,7 +27,6 @@ from htmx_utils.form_builder import (
 from htmx_utils.table_builder import TableBuilder
 
 app = Flask(__name__)
-app = Flask(__name__)
 CORS(app)
 
 @app.route('/hello', methods=['PUT'])
@@ -134,12 +133,14 @@ def get_recipe_ingredients():
         return jsonify({"error": f"{missing_user_name}, {missing_recipe_ids}"}), 400
 
     ingredient_getter = RecipeIngredientGetter(user=user_name)
-    if type(recipe_ids) == str and "[" in recipe_ids and "]" in recipe_ids:
-        recipe_ids = recipe_ids.replace("[","").replace("]","").split(",")
+    ingredients = []
+    if isinstance(recipe_ids, str) and "[" in recipe_ids and "]" in recipe_ids:
+        recipe_ids = recipe_ids.replace("[", "").replace("]", "").split(",")
         recipe_ids = [int(rid) for rid in recipe_ids if rid.strip().isnumeric()]
-        ingredients = ingredient_getter.get_ingredients_for_recipes(recipe_ids)
-    
-    if len(recipe_ids) == 0 or type(recipe_ids) != list:
+        if len(recipe_ids) > 0:
+            ingredients = ingredient_getter.get_ingredients_for_recipes(recipe_ids)
+
+    if len(ingredients) == 0:
         ingredients = [
             Ingredient(
                 category="",
@@ -167,8 +168,8 @@ def get_recipe_ingredients():
 
 @app.route("/get_combined_shopping_list_items", methods=["POST"])
 def get_combined_shopping_list_items():
-    user_name = request.form.get("user_name").strip()
-    list_id = request.form.get("list_id").strip()
+    user_name = (request.form.get("user_name") or "").strip()
+    list_id = (request.form.get("list_id") or "").strip()
     if not user_name or not list_id:
         return jsonify({"error": f"Missing required parameter."}), 400
     list_manager = ShoppingListManager(user=user_name)
@@ -246,8 +247,60 @@ def add_additional_item_to_list():
 
 @app.route("/add_recipe_to_list", methods=["POST"])
 def add_recipe_to_list():
-    user_name = request.form.get("user_name").strip()
-    list_id = request.form.get("list_id").strip()
+    user_name = (request.form.get("user_name") or "").strip()
+    list_id_raw = (request.form.get("list_id") or "").strip()
+    recipe_id_raw = (request.form.get("recipe_id") or "").strip()
+
+    missing_params = []
+    if not user_name:
+        missing_params.append("user_name")
+    if not recipe_id_raw or not recipe_id_raw.isnumeric():
+        missing_params.append("recipe_id")
+    if missing_params:
+        return jsonify({"error": f"missing attributes: {','.join(missing_params)}"}), 400
+
+    slm = ShoppingListManager(user=user_name)
+
+    if list_id_raw.isnumeric():
+        list_id = int(list_id_raw)
+    else:
+        cur = slm.db_conn.cursor()
+        cur.execute("SELECT id FROM shopping_list ORDER BY id DESC LIMIT 1")
+        last_row = cur.fetchone()
+        if last_row:
+            list_id = int(last_row[0])
+        else:
+            list_id = slm.make_new_list(name="Default Shopping List").id
+
+    recipe_id = int(recipe_id_raw)
+    cur = slm.db_conn.cursor()
+    cur.execute(
+        "SELECT id, name, full_text, recipe_source FROM recipes WHERE id = ? AND removed = 0",
+        [recipe_id]
+    )
+    row = cur.fetchone()
+    if not row:
+        return jsonify({"error": "recipe_id not found"}), 404
+
+    slm.add_recipe_to_list(
+        list_id=list_id,
+        recipe=Recipe(id=row[0], name=row[1], full_text=row[2], source=row[3])
+    )
+
+    combined_ingredients = slm.get_combined_shopping_list_items(list_id=list_id)
+    return TableBuilder.row_wise_dict_list_to_html_table(
+        dict_list=[{
+            "Category": ing.category,
+            "Ingredient": ing.item_name,
+            "Unit": ing.unit_of_measurement,
+            "Amount": ing.amount,
+            "From": ", ".join(ing.ingredient_recipes) if isinstance(ing.ingredient_recipes, list) else ing.ingredient_recipes
+        } for ing in combined_ingredients],
+        table_id="shopping-list-table",
+        thead_id="shopping-list-table-head",
+        tbody_id="shopping-list-table-body",
+        include_headers=False
+    )
 
 
 @app.route("/get_additional_item_selections", methods=["GET"])

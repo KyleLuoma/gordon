@@ -159,6 +159,7 @@ class RecipeIngredientGetter:
             )
         except Exception as e:
             return "Unable to extract a recipe from the provided URL"
+        return "Recipe saved successfully"
 
     
     def extract_ingredients_from_text_recipe(
@@ -253,7 +254,6 @@ class RecipeIngredientGetter:
         
 
     def get_ingredients_for_recipes(self, recipe_ids: list[int]) -> list[Ingredient]:
-        print("DEBUG", recipe_ids, type(recipe_ids))
         query = """
         select category, name, unit_of_measurement, sum(amount) as amount
         from recipe_ingredients

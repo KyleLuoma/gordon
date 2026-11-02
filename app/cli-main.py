@@ -1,7 +1,4 @@
-from recipe_ingredient_getter.RecipeIngredientGetter import (
-    Ingredient,
-    RecipeIngredientGetter
-)
+from shopping_list.RecipeIngredientGetter import RecipeIngredientGetter
 
 def main():
     recipes = [
@@ -15,7 +12,7 @@ def main():
         )  
     ]
 
-    recipe_folder = "./recipe_ingredient_getter/recipe_text"
+    recipe_folder = "./shopping_list/recipe_text"
     ingredient_getter = RecipeIngredientGetter()
 
     for recipe in recipes:

@@ -49,6 +49,8 @@ create table if not exists shopping_list_items (
   scale_adjustment float not null default 1.0
 );
 
+drop view if exists combined_shopping_list_view;
+
 create view if not exists combined_shopping_list_view as 
 select 
   sl.id as shopping_list_id,
@@ -61,18 +63,18 @@ select
 from shopping_list sl
 join shopping_list_items sli on sli.shopping_list_id = sl.id
 join recipe_ingredients rig on sli.entry_id = rig.recipe_id
-join incredients ig on rig.incredient_id = ig.id
+join ingredients ig on rig.ingredient_id = ig.id
 join recipes re on re.id = rig.recipe_id
 where sli.entry_type = 'recipe' and sli.removed = 0
-group by sl.id, ig.category, ig.name, ig.unit_of_measurement
+group by sl.id, sli.id, ig.category, ig.name, rig.unit_of_measurement
 
 union 
 
 select
   sl.id as shopping_list_id,
   sli.id as shopping_list_item_id,
-  it.category as category,
-  it.name as item_name,
+  ig.category as category,
+  ig.name as item_name,
   'Non-Recipe Item' as ingredient_recipes, 
   'N/A' as unit_of_measurement,
   1 as amount

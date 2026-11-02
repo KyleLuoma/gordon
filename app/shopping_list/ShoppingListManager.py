@@ -1,6 +1,5 @@
 import sqlite3
 from dataclasses import dataclass
-import json
 import time
 from enum import Enum
 from shopping_list import RecipeIngredientGetter
@@ -58,7 +57,6 @@ class ShoppingListManager:
                 statements = build_query.split(";")
             cursor = self.db_conn.cursor()
             for statement in statements:
-                print(statement)
                 cursor.execute(statement)
             self.db_conn.commit()
         self.recipe_ingredient_getter = RecipeIngredientGetter.RecipeIngredientGetter(
@@ -97,9 +95,9 @@ SELECT MAX(id) FROM shopping_list WHERE name = '{name}' and created_at = '{times
             return shopping_list
         for item in items:
             shopping_list.items.append(item)
-            if type(item) == AdditionalItem:
+            if isinstance(item, AdditionalItem):
                 self.add_additional_item_to_list(shopping_list.id, item)
-            elif type(item) == RecipeIngredientGetter.Recipe:
+            elif isinstance(item, RecipeIngredientGetter.Recipe):
                 self.add_recipe_to_list(shopping_list.id, item)
         return shopping_list
 
@@ -121,7 +119,9 @@ SELECT category FROM (
         prompt = prompt.replace("__CATEGORY_LIST__", "\n".join(existing_categories))
         prompt = prompt.replace("__INGREDIENT_NAME__", item_name)
         llm_response = self.recipe_ingredient_getter.llm.send_prompt(prompt)
-        
+        if llm_response:
+            return llm_response.strip().splitlines()[0]
+        return "Additional Items"
         
 
 
@@ -170,7 +170,7 @@ INSERT INTO shopping_list_items (shopping_list_id, entry_type, entry_id) VALUES 
 
 
     def get_combined_shopping_list_items(self, list_id: int) -> list[CombinedShoppingListItem]:
-        get_list_query = f"""
+        get_list_query = """
 SELECT 
     shopping_list_id,
     shopping_list_item_id,
@@ -180,18 +180,19 @@ SELECT
     unit_of_measurement,
     amount
 FROM combined_shopping_list_view
-WHERE shopping_list_id = {list_id}
+WHERE shopping_list_id = ?
 """
         cur = self.db_conn.cursor()
-        cur.execute(get_list_query)
+        cur.execute(get_list_query, [list_id])
         clist = []
         for row in cur.fetchall():
+            recipe_sources = row[4] or ""
             clist.append(CombinedShoppingListItem(
                 shopping_list_id=list_id,
                 shopping_list_item_id=row[1],
                 category=row[2],
                 item_name=row[3],
-                ingredient_recipes=[entry.strip() for entry in row[4].split(",")] if "," in row[3] else row[3],
+                ingredient_recipes=[entry.strip() for entry in recipe_sources.split(",")] if recipe_sources else [],
                 unit_of_measurement=row[5],
                 amount=row[6]
             ))
